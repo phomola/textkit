@@ -28,14 +28,15 @@ type Token struct {
 type Tokeniser struct {
 	CommentPrefix string
 	StringChar    byte
+	WordChars     string
 }
 
 func isWhiteChar(c byte) bool {
 	return c == ' ' || c == '\r' || c == '\n' || c == '\t'
 }
 
-func isAlpha(c byte) bool {
-	return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= 128
+func (t *Tokeniser) isAlpha(c byte) bool {
+	return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= 128 || strings.IndexByte(t.WordChars, c) != -1
 }
 
 func isNum(c byte) bool {
@@ -85,7 +86,7 @@ func (t *Tokeniser) Tokenise(s string) []*Token {
 		c := s[i]
 		switch state {
 		case word:
-			if isAlpha(c) || isNum(c) {
+			if t.isAlpha(c) || isNum(c) {
 				sb.WriteByte(c)
 				col++
 				i++
@@ -119,7 +120,7 @@ func (t *Tokeniser) Tokenise(s string) []*Token {
 				i++
 			}
 		case global:
-			if isAlpha(c) {
+			if t.isAlpha(c) {
 				state = word
 				colstart = col
 				sb.Reset()
