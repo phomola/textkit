@@ -23,6 +23,7 @@ type Token struct {
 	Form   string
 	Line   int
 	Column int
+	Tag    string
 }
 
 type Tokeniser struct {
@@ -52,7 +53,7 @@ const (
 
 func (t *Tokeniser) Tokenise(s string) []*Token {
 	var tokens []*Token
-	i, line, col, colstart, state := 0, 1, 1, 1, global
+	i, line, col, colstart, state, numtag := 0, 1, 1, 1, global, ""
 	var sb strings.Builder
 	for {
 		if state == global {
@@ -87,11 +88,19 @@ func (t *Tokeniser) Tokenise(s string) []*Token {
 		switch state {
 		case word:
 			if t.isAlpha(c) || isNum(c) {
-				sb.WriteByte(c)
+				if numtag == "" {
+					sb.WriteByte(c)
+				} else {
+					numtag += string(c)
+				}
 				col++
 				i++
 			} else {
-				tokens = append(tokens, &Token{Word, sb.String(), line, colstart})
+				if numtag == "" {
+					tokens = append(tokens, &Token{Word, sb.String(), line, colstart, ""})
+				} else {
+					tokens = append(tokens, &Token{Number, sb.String(), line, colstart, numtag})
+				}
 				state = global
 			}
 		case number:
@@ -100,12 +109,19 @@ func (t *Tokeniser) Tokenise(s string) []*Token {
 				col++
 				i++
 			} else {
-				tokens = append(tokens, &Token{Number, sb.String(), line, colstart})
-				state = global
+				if t.isAlpha(c) {
+					numtag += string(c)
+					col++
+					i++
+					state = word
+				} else {
+					tokens = append(tokens, &Token{Number, sb.String(), line, colstart, ""})
+					state = global
+				}
 			}
 		case qstring:
 			if c == t.StringChar {
-				tokens = append(tokens, &Token{String, sb.String(), line, colstart})
+				tokens = append(tokens, &Token{String, sb.String(), line, colstart, ""})
 				state = global
 				col++
 				i++
@@ -123,6 +139,7 @@ func (t *Tokeniser) Tokenise(s string) []*Token {
 			if t.isAlpha(c) {
 				state = word
 				colstart = col
+				numtag = ""
 				sb.Reset()
 				sb.WriteByte(c)
 				col++
@@ -130,6 +147,7 @@ func (t *Tokeniser) Tokenise(s string) []*Token {
 			} else if isNum(c) {
 				state = number
 				colstart = col
+				numtag = ""
 				sb.Reset()
 				sb.WriteByte(c)
 				col++
@@ -138,10 +156,11 @@ func (t *Tokeniser) Tokenise(s string) []*Token {
 				sb.Reset()
 				state = qstring
 				colstart = col
+				numtag = ""
 				col++
 				i++
 			} else {
-				tokens = append(tokens, &Token{Symbol, string([]byte{c}), line, col})
+				tokens = append(tokens, &Token{Symbol, string([]byte{c}), line, col, ""})
 				col++
 				i++
 			}
@@ -149,12 +168,16 @@ func (t *Tokeniser) Tokenise(s string) []*Token {
 	}
 	switch state {
 	case word:
-		tokens = append(tokens, &Token{Word, sb.String(), line, colstart})
+		if numtag == "" {
+			tokens = append(tokens, &Token{Word, sb.String(), line, colstart, ""})
+		} else {
+			tokens = append(tokens, &Token{Number, sb.String(), line, colstart, numtag})
+		}
 	case number:
-		tokens = append(tokens, &Token{Number, sb.String(), line, colstart})
+		tokens = append(tokens, &Token{Number, sb.String(), line, colstart, ""})
 	case qstring:
-		tokens = append(tokens, &Token{String, sb.String(), line, colstart})
+		tokens = append(tokens, &Token{String, sb.String(), line, colstart, ""})
 	}
-	tokens = append(tokens, &Token{EOF, "", line, col})
+	tokens = append(tokens, &Token{EOF, "", line, col, ""})
 	return tokens
 }
