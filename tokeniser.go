@@ -1,4 +1,4 @@
-// Copyright 2019 Petr Homola. All rights reserved.
+// Copyright 2019-2020 Petr Homola. All rights reserved.
 // Use of this source code is governed by the AGPL v3.0
 // that can be found in the LICENSE file.
 
@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// A token type.
 type TokenType int
 
 const (
@@ -18,14 +19,21 @@ const (
 	EOF
 )
 
+// A token.
 type Token struct {
-	Type   TokenType
-	Form   string
-	Line   int
+	// The token's type.
+	Type TokenType
+	// The form of the token as a string.
+	Form string
+	// The line where the token is located.
+	Line int
+	// The column where the token is located.
 	Column int
-	Tag    string
+	// An associated tag.
+	Tag string
 }
 
+// A tokeniser which takes into account comments and special characters in identifiers.
 type Tokeniser struct {
 	CommentPrefix string
 	StringChar    byte
@@ -51,6 +59,7 @@ const (
 	qstring
 )
 
+// Tokenises a text.
 func (t *Tokeniser) Tokenise(s string) []*Token {
 	var tokens []*Token
 	i, line, col, colstart, state, numtag := 0, 1, 1, 1, global, ""

@@ -1,7 +1,8 @@
-// Copyright 2019 Petr Homola. All rights reserved.
+// Copyright 2019-2020 Petr Homola. All rights reserved.
 // Use of this source code is governed by the AGPL v3.0
 // that can be found in the LICENSE file.
 
+// This package provides a tokeniser and morphological analyser.
 package textkit
 
 import (
@@ -10,15 +11,20 @@ import (
 	"strings"
 )
 
+// A lexical entry.
 type LexicalEntry struct {
+	// The entry's lemma.
 	Lemma string
-	Tag   string
+	// The morphological tag.
+	Tag string
 }
 
+// A morphological lexicon.
 type MorphologicalLexicon struct {
 	entries map[string][]*LexicalEntry
 }
 
+// Adds an entry to the lexicon.
 func (lex *MorphologicalLexicon) AddEntry(form, lemma, tag string) {
 	form = strings.ToLower(form)
 	list := lex.entries[form]
@@ -26,10 +32,12 @@ func (lex *MorphologicalLexicon) AddEntry(form, lemma, tag string) {
 	lex.entries[form] = list
 }
 
+// Analyses a word form. Returns a list of lexical entries.
 func (lex *MorphologicalLexicon) Analyse(form string) []*LexicalEntry {
 	return lex.entries[form]
 }
 
+// Returns a new morphological lexicon.
 func NewMorphologicalLexicon(filename string) (*MorphologicalLexicon, error) {
 	f, err := os.Open(filename)
 	if err != nil {
