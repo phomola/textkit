@@ -23,8 +23,8 @@ const (
 type Token struct {
 	// The token's type.
 	Type TokenType
-	// The form of the token as a string.
-	Form string
+	// The form of the token as a slice of runes.
+	Form []rune
 	// The line where the token is located.
 	Line int
 	// The column where the token is located.
@@ -36,19 +36,19 @@ type Token struct {
 // A tokeniser which takes into account comments and special characters in identifiers.
 type Tokeniser struct {
 	CommentPrefix string
-	StringChar    byte
-	WordChars     string
+	StringRune    rune
+	IdentChars    string
 }
 
-func isWhiteChar(c byte) bool {
+func isWhiteChar(c rune) bool {
 	return c == ' ' || c == '\r' || c == '\n' || c == '\t'
 }
 
-func (t *Tokeniser) isAlpha(c byte) bool {
-	return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= 128 || strings.IndexByte(t.WordChars, c) != -1
+func (t *Tokeniser) isAlpha(c rune) bool {
+	return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= 128 || strings.IndexRune(t.IdentChars, c) != -1
 }
 
-func isNum(c byte) bool {
+func isNum(c rune) bool {
 	return c >= '0' && c <= '9'
 }
 
@@ -60,28 +60,31 @@ const (
 )
 
 // Tokenises a text.
-func (t *Tokeniser) Tokenise(s string) []*Token {
+func (t *Tokeniser) Tokenise(text string) []*Token {
+	runes := []rune(text)
+	commentPrefixRunes := []rune(t.CommentPrefix)
 	var tokens []*Token
 	i, line, col, colstart, state, numtag := 0, 1, 1, 1, global, ""
-	var sb strings.Builder
+	//var sb strings.Builder
+	var form []rune
 	for {
 		if state == global {
-			for i < len(s) {
-				c := s[i]
+			for i < len(runes) {
+				r := runes[i]
 				if len(t.CommentPrefix) > 0 {
-					if (len(s) - i) >= len(t.CommentPrefix) {
-						if s[i:i+len(t.CommentPrefix)] == t.CommentPrefix {
-							for i < len(s) && s[i] != '\n' {
+					if (len(runes) - i) >= len(commentPrefixRunes) {
+						if string(runes[i:i+len(commentPrefixRunes)]) == t.CommentPrefix {
+							for i < len(runes) && runes[i] != '\n' {
 								i++
 							}
-							c = '\n'
+							r = '\n'
 						}
 					}
 				}
-				if !isWhiteChar(c) {
+				if !isWhiteChar(r) {
 					break
 				}
-				if c == '\n' {
+				if r == '\n' {
 					line++
 					col = 1
 				} else {
@@ -90,53 +93,53 @@ func (t *Tokeniser) Tokenise(s string) []*Token {
 				i++
 			}
 		}
-		if i == len(s) {
+		if i == len(runes) {
 			break
 		}
-		c := s[i]
+		r := runes[i]
 		switch state {
 		case word:
-			if t.isAlpha(c) || isNum(c) {
+			if t.isAlpha(r) || isNum(r) {
 				if numtag == "" {
-					sb.WriteByte(c)
+					form = append(form, r) //sb.WriteRune(r)
 				} else {
-					numtag += string(c)
+					numtag += string(r)
 				}
 				col++
 				i++
 			} else {
 				if numtag == "" {
-					tokens = append(tokens, &Token{Word, sb.String(), line, colstart, ""})
+					tokens = append(tokens, &Token{Word, form, line, colstart, ""})
 				} else {
-					tokens = append(tokens, &Token{Number, sb.String(), line, colstart, numtag})
+					tokens = append(tokens, &Token{Number, form, line, colstart, numtag})
 				}
 				state = global
 			}
 		case number:
-			if isNum(c) {
-				sb.WriteByte(c)
+			if isNum(r) {
+				form = append(form, r) //sb.WriteRune(r)
 				col++
 				i++
 			} else {
-				if t.isAlpha(c) {
-					numtag += string(c)
+				if t.isAlpha(r) {
+					numtag += string(r)
 					col++
 					i++
 					state = word
 				} else {
-					tokens = append(tokens, &Token{Number, sb.String(), line, colstart, ""})
+					tokens = append(tokens, &Token{Number, form, line, colstart, ""})
 					state = global
 				}
 			}
 		case qstring:
-			if c == t.StringChar {
-				tokens = append(tokens, &Token{String, sb.String(), line, colstart, ""})
+			if r == t.StringRune {
+				tokens = append(tokens, &Token{String, form, line, colstart, ""})
 				state = global
 				col++
 				i++
 			} else {
-				sb.WriteByte(c)
-				if c == '\n' {
+				form = append(form, r) //sb.WriteRune(r)
+				if r == '\n' {
 					line++
 					col = 1
 				} else {
@@ -145,31 +148,31 @@ func (t *Tokeniser) Tokenise(s string) []*Token {
 				i++
 			}
 		case global:
-			if t.isAlpha(c) {
+			if t.isAlpha(r) {
 				state = word
 				colstart = col
 				numtag = ""
-				sb.Reset()
-				sb.WriteByte(c)
+				form = nil             //sb.Reset()
+				form = append(form, r) //sb.WriteRune(r)
 				col++
 				i++
-			} else if isNum(c) {
+			} else if isNum(r) {
 				state = number
 				colstart = col
 				numtag = ""
-				sb.Reset()
-				sb.WriteByte(c)
+				form = nil             //sb.Reset()
+				form = append(form, r) //sb.WriteRune(r)
 				col++
 				i++
-			} else if c == t.StringChar {
-				sb.Reset()
+			} else if r == t.StringRune {
+				form = nil //sb.Reset()
 				state = qstring
 				colstart = col
 				numtag = ""
 				col++
 				i++
 			} else {
-				tokens = append(tokens, &Token{Symbol, string([]byte{c}), line, col, ""})
+				tokens = append(tokens, &Token{Symbol, []rune{r}, line, col, ""})
 				col++
 				i++
 			}
@@ -178,15 +181,15 @@ func (t *Tokeniser) Tokenise(s string) []*Token {
 	switch state {
 	case word:
 		if numtag == "" {
-			tokens = append(tokens, &Token{Word, sb.String(), line, colstart, ""})
+			tokens = append(tokens, &Token{Word, form, line, colstart, ""})
 		} else {
-			tokens = append(tokens, &Token{Number, sb.String(), line, colstart, numtag})
+			tokens = append(tokens, &Token{Number, form, line, colstart, numtag})
 		}
 	case number:
-		tokens = append(tokens, &Token{Number, sb.String(), line, colstart, ""})
+		tokens = append(tokens, &Token{Number, form, line, colstart, ""})
 	case qstring:
-		tokens = append(tokens, &Token{String, sb.String(), line, colstart, ""})
+		tokens = append(tokens, &Token{String, form, line, colstart, ""})
 	}
-	tokens = append(tokens, &Token{EOF, "", line, col, ""})
+	tokens = append(tokens, &Token{EOF, nil, line, col, ""})
 	return tokens
 }
