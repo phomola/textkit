@@ -16,6 +16,7 @@ const (
 	Number
 	String
 	Symbol
+	EOL
 	EOF
 )
 
@@ -38,6 +39,7 @@ type Tokeniser struct {
 	CommentPrefix string
 	StringRune    rune
 	IdentChars    string
+	KeepEOLs      bool
 }
 
 func isWhiteChar(c rune) bool {
@@ -85,6 +87,9 @@ func (t *Tokeniser) Tokenise(text string) []*Token {
 					break
 				}
 				if r == '\n' {
+					if t.KeepEOLs {
+						tokens = append(tokens, &Token{EOL, nil, line, col, ""})
+					}
 					line++
 					col = 1
 				} else {
