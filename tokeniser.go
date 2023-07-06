@@ -9,9 +9,10 @@ import (
 	"strings"
 )
 
-// A token type.
+// TokenType is a token type.
 type TokenType int
 
+// Token types
 const (
 	Word TokenType = iota
 	Number
@@ -34,7 +35,7 @@ func (loc Location) String() string {
 
 var _ fmt.Stringer = Location{}
 
-// A token.
+// Token is a text token.
 type Token struct {
 	// The token's type.
 	Type TokenType
@@ -46,7 +47,7 @@ type Token struct {
 	Tag string
 }
 
-// A tokeniser which takes into account comments and special characters in identifiers.
+// Tokeniser is a tokeniser which takes into account comments and special characters in identifiers.
 type Tokeniser struct {
 	CommentPrefix string
 	StringRune    rune
@@ -73,7 +74,7 @@ const (
 	qstring
 )
 
-// Tokenises a text.
+// Tokenise tokenises a text.
 func (t *Tokeniser) Tokenise(text, file string) []*Token {
 	runes := []rune(text)
 	commentPrefixRunes := []rune(t.CommentPrefix)
