@@ -5,6 +5,7 @@
 package textkit
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -25,6 +26,10 @@ type Location struct {
 	File   string
 	Line   int
 	Column int
+}
+
+func (loc Location) String() string {
+	return fmt.Sprintf("%s:%d", loc.File, loc.Line)
 }
 
 // A token.
