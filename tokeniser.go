@@ -20,16 +20,21 @@ const (
 	EOF
 )
 
+// Location specifies the location of a token.
+type Location struct {
+	File   string
+	Line   int
+	Column int
+}
+
 // A token.
 type Token struct {
 	// The token's type.
 	Type TokenType
 	// The form of the token as a slice of runes.
 	Form []rune
-	// The line where the token is located.
-	Line int
-	// The column where the token is located.
-	Column int
+	// The location where the token is located.
+	Loc Location
 	// An associated tag.
 	Tag string
 }
@@ -62,7 +67,7 @@ const (
 )
 
 // Tokenises a text.
-func (t *Tokeniser) Tokenise(text string) []*Token {
+func (t *Tokeniser) Tokenise(text, file string) []*Token {
 	runes := []rune(text)
 	commentPrefixRunes := []rune(t.CommentPrefix)
 	var tokens []*Token
@@ -88,7 +93,7 @@ func (t *Tokeniser) Tokenise(text string) []*Token {
 				}
 				if r == '\n' {
 					if t.KeepEOLs {
-						tokens = append(tokens, &Token{EOL, nil, line, col, ""})
+						tokens = append(tokens, &Token{EOL, nil, Location{file, line, col}, ""})
 					}
 					line++
 					col = 1
@@ -114,9 +119,9 @@ func (t *Tokeniser) Tokenise(text string) []*Token {
 				i++
 			} else {
 				if numtag == "" {
-					tokens = append(tokens, &Token{Word, form, line, colstart, ""})
+					tokens = append(tokens, &Token{Word, form, Location{file, line, colstart}, ""})
 				} else {
-					tokens = append(tokens, &Token{Number, form, line, colstart, numtag})
+					tokens = append(tokens, &Token{Number, form, Location{file, line, colstart}, numtag})
 				}
 				state = global
 			}
@@ -132,13 +137,13 @@ func (t *Tokeniser) Tokenise(text string) []*Token {
 					i++
 					state = word
 				} else {
-					tokens = append(tokens, &Token{Number, form, line, colstart, ""})
+					tokens = append(tokens, &Token{Number, form, Location{file, line, colstart}, ""})
 					state = global
 				}
 			}
 		case qstring:
 			if r == t.StringRune {
-				tokens = append(tokens, &Token{String, form, line, colstart, ""})
+				tokens = append(tokens, &Token{String, form, Location{file, line, colstart}, ""})
 				state = global
 				col++
 				i++
@@ -177,7 +182,7 @@ func (t *Tokeniser) Tokenise(text string) []*Token {
 				col++
 				i++
 			} else {
-				tokens = append(tokens, &Token{Symbol, []rune{r}, line, col, ""})
+				tokens = append(tokens, &Token{Symbol, []rune{r}, Location{file, line, col}, ""})
 				col++
 				i++
 			}
@@ -186,15 +191,15 @@ func (t *Tokeniser) Tokenise(text string) []*Token {
 	switch state {
 	case word:
 		if numtag == "" {
-			tokens = append(tokens, &Token{Word, form, line, colstart, ""})
+			tokens = append(tokens, &Token{Word, form, Location{file, line, colstart}, ""})
 		} else {
-			tokens = append(tokens, &Token{Number, form, line, colstart, numtag})
+			tokens = append(tokens, &Token{Number, form, Location{file, line, colstart}, numtag})
 		}
 	case number:
-		tokens = append(tokens, &Token{Number, form, line, colstart, ""})
+		tokens = append(tokens, &Token{Number, form, Location{file, line, colstart}, ""})
 	case qstring:
-		tokens = append(tokens, &Token{String, form, line, colstart, ""})
+		tokens = append(tokens, &Token{String, form, Location{file, line, colstart}, ""})
 	}
-	tokens = append(tokens, &Token{EOF, nil, line, col, ""})
+	tokens = append(tokens, &Token{EOF, nil, Location{file, line, col}, ""})
 	return tokens
 }
