@@ -47,7 +47,7 @@ func isWhiteChar(c rune) bool {
 }
 
 func (t *Tokeniser) isAlpha(c rune) bool {
-	return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= 128 || strings.IndexRune(t.IdentChars, c) != -1
+	return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= 128 || strings.ContainsRune(t.IdentChars, c)
 }
 
 func isNum(c rune) bool {
