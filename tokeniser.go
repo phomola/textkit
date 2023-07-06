@@ -32,6 +32,8 @@ func (loc Location) String() string {
 	return fmt.Sprintf("%s:%d", loc.File, loc.Line)
 }
 
+var _ fmt.Stringer = Location{}
+
 // A token.
 type Token struct {
 	// The token's type.
