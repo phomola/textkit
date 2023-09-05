@@ -19,8 +19,29 @@ const (
 	String
 	Symbol
 	EOL
+	EndIndent
 	EOF
 )
+
+func (t TokenType) String() string {
+	switch t {
+	case Word:
+		return "word"
+	case Number:
+		return "number"
+	case String:
+		return "string"
+	case Symbol:
+		return "symbol"
+	case EOL:
+		return "eol"
+	case EndIndent:
+		return "endindent"
+	case EOF:
+		return "eof"
+	}
+	return "unknown"
+}
 
 // Location specifies the location of a token.
 type Location struct {
@@ -49,10 +70,11 @@ type Token struct {
 
 // Tokeniser is a tokeniser which takes into account comments and special characters in identifiers.
 type Tokeniser struct {
-	CommentPrefix string
-	StringRune    rune
-	IdentChars    string
-	KeepEOLs      bool
+	CommentPrefix  string
+	StringRune     rune
+	IdentChars     string
+	KeepEOLs       bool
+	KeepEndIndents bool
 }
 
 func isWhiteChar(c rune) bool {
@@ -79,7 +101,7 @@ func (t *Tokeniser) Tokenise(text, file string) []*Token {
 	runes := []rune(text)
 	commentPrefixRunes := []rune(t.CommentPrefix)
 	var tokens []*Token
-	i, line, col, colstart, state, numtag := 0, 1, 1, 1, global, ""
+	i, line, col, colstart, state, numtag, indent, lastIndent, lineStart := 0, 1, 1, 1, global, "", 0, 0, true
 	//var sb strings.Builder
 	var form []rune
 	for {
@@ -97,6 +119,13 @@ func (t *Tokeniser) Tokenise(text, file string) []*Token {
 					}
 				}
 				if !isWhiteChar(r) {
+					if lineStart && t.KeepEndIndents {
+						if indent < lastIndent {
+							tokens = append(tokens, &Token{EndIndent, nil, Location{file, line, col}, ""})
+						}
+						lastIndent = indent
+						lineStart = false
+					}
 					break
 				}
 				if r == '\n' {
@@ -105,8 +134,13 @@ func (t *Tokeniser) Tokenise(text, file string) []*Token {
 					}
 					line++
 					col = 1
+					indent = 0
+					lineStart = true
 				} else {
 					col++
+					if lineStart {
+						indent++
+					}
 				}
 				i++
 			}
