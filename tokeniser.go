@@ -68,6 +68,10 @@ type Token struct {
 	Tag string
 }
 
+func (t *Token) String() string {
+	return fmt.Sprintf("%s %s %s", t.Type, string(t.Form), t.Loc)
+}
+
 // Tokeniser is a tokeniser which takes into account comments and special characters in identifiers.
 type Tokeniser struct {
 	CommentPrefix  string
@@ -101,9 +105,10 @@ func (t *Tokeniser) Tokenise(text, file string) []*Token {
 	runes := []rune(text)
 	commentPrefixRunes := []rune(t.CommentPrefix)
 	var tokens []*Token
-	i, line, col, colstart, state, numtag, indent, lastIndent, lineStart := 0, 1, 1, 1, global, "", 0, 0, true
+	i, line, col, colstart, state, numtag, indent, lineStart := 0, 1, 1, 1, global, "", 0, true
 	//var sb strings.Builder
 	var form []rune
+	var indents []int
 	for {
 		if state == global {
 			for i < len(runes) {
@@ -120,10 +125,14 @@ func (t *Tokeniser) Tokenise(text, file string) []*Token {
 				}
 				if !isWhiteChar(r) {
 					if lineStart && t.KeepEndIndents {
-						if indent < lastIndent {
-							tokens = append(tokens, &Token{EndIndent, nil, Location{file, line, col}, ""})
+						if len(indents) > 0 && indents[len(indents)-1] < indent || len(indents) == 0 && indent > 0 {
+							indents = append(indents, indent)
+						} else {
+							for len(indents) > 0 && indent < indents[len(indents)-1] {
+								tokens = append(tokens, &Token{EndIndent, nil, Location{file, line, col}, ""})
+								indents = indents[:len(indents)-1]
+							}
 						}
-						lastIndent = indent
 						lineStart = false
 					}
 					break
@@ -241,6 +250,12 @@ func (t *Tokeniser) Tokenise(text, file string) []*Token {
 		tokens = append(tokens, &Token{Number, form, Location{file, line, colstart}, ""})
 	case qstring:
 		tokens = append(tokens, &Token{String, form, Location{file, line, colstart}, ""})
+	}
+	if t.KeepEndIndents {
+		for len(indents) > 0 && indent < indents[len(indents)-1] {
+			tokens = append(tokens, &Token{EndIndent, nil, Location{file, line, col}, ""})
+			indents = indents[:len(indents)-1]
+		}
 	}
 	tokens = append(tokens, &Token{EOF, nil, Location{file, line, col}, ""})
 	return tokens

@@ -13,17 +13,21 @@ func TestEndIndents(t *testing.T) {
 		KeepEndIndents: true,
 	}
 	tokens := tok.Tokenise(`#
-abcd 1234
-efgh 5678
-  abcd 1234
-  efgh 5678
-abcd 1234
-efgh 5678
+A
+  B
+C
+  D
+    E
+  F
+    G
+H
+  I
+    J
 `, "<file>")
 
-	// for _, tok := range tokens {
-	// 	t.Log(tok)
-	// }
+	for _, tok := range tokens {
+		t.Log(tok)
+	}
 
-	r.Equal(15, len(tokens))
+	r.Equal(18, len(tokens))
 }
