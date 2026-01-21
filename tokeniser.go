@@ -63,7 +63,7 @@ type Token struct {
 	// The form of the token as a slice of runes.
 	Form []rune
 	// The location where the token is located.
-	Loc Location
+	Loc *Location
 	// An associated tag.
 	Tag string
 }
@@ -129,7 +129,7 @@ func (t *Tokeniser) Tokenise(text, file string) []*Token {
 							indents = append(indents, indent)
 						} else {
 							for len(indents) > 0 && indent < indents[len(indents)-1] {
-								tokens = append(tokens, &Token{EndIndent, nil, Location{file, line, col}, ""})
+								tokens = append(tokens, &Token{EndIndent, nil, &Location{file, line, col}, ""})
 								indents = indents[:len(indents)-1]
 							}
 						}
@@ -139,7 +139,7 @@ func (t *Tokeniser) Tokenise(text, file string) []*Token {
 				}
 				if r == '\n' {
 					if t.KeepEOLs {
-						tokens = append(tokens, &Token{EOL, nil, Location{file, line, col}, ""})
+						tokens = append(tokens, &Token{EOL, nil, &Location{file, line, col}, ""})
 					}
 					line++
 					col = 1
@@ -170,9 +170,9 @@ func (t *Tokeniser) Tokenise(text, file string) []*Token {
 				i++
 			} else {
 				if numtag == "" {
-					tokens = append(tokens, &Token{Word, form, Location{file, line, colstart}, ""})
+					tokens = append(tokens, &Token{Word, form, &Location{file, line, colstart}, ""})
 				} else {
-					tokens = append(tokens, &Token{Number, form, Location{file, line, colstart}, numtag})
+					tokens = append(tokens, &Token{Number, form, &Location{file, line, colstart}, numtag})
 				}
 				state = global
 			}
@@ -188,13 +188,13 @@ func (t *Tokeniser) Tokenise(text, file string) []*Token {
 					i++
 					state = word
 				} else {
-					tokens = append(tokens, &Token{Number, form, Location{file, line, colstart}, ""})
+					tokens = append(tokens, &Token{Number, form, &Location{file, line, colstart}, ""})
 					state = global
 				}
 			}
 		case qstring:
 			if r == t.StringRune {
-				tokens = append(tokens, &Token{String, form, Location{file, line, colstart}, ""})
+				tokens = append(tokens, &Token{String, form, &Location{file, line, colstart}, ""})
 				state = global
 				col++
 				i++
@@ -233,7 +233,7 @@ func (t *Tokeniser) Tokenise(text, file string) []*Token {
 				col++
 				i++
 			} else {
-				tokens = append(tokens, &Token{Symbol, []rune{r}, Location{file, line, col}, ""})
+				tokens = append(tokens, &Token{Symbol, []rune{r}, &Location{file, line, col}, ""})
 				col++
 				i++
 			}
@@ -242,21 +242,21 @@ func (t *Tokeniser) Tokenise(text, file string) []*Token {
 	switch state {
 	case word:
 		if numtag == "" {
-			tokens = append(tokens, &Token{Word, form, Location{file, line, colstart}, ""})
+			tokens = append(tokens, &Token{Word, form, &Location{file, line, colstart}, ""})
 		} else {
-			tokens = append(tokens, &Token{Number, form, Location{file, line, colstart}, numtag})
+			tokens = append(tokens, &Token{Number, form, &Location{file, line, colstart}, numtag})
 		}
 	case number:
-		tokens = append(tokens, &Token{Number, form, Location{file, line, colstart}, ""})
+		tokens = append(tokens, &Token{Number, form, &Location{file, line, colstart}, ""})
 	case qstring:
-		tokens = append(tokens, &Token{String, form, Location{file, line, colstart}, ""})
+		tokens = append(tokens, &Token{String, form, &Location{file, line, colstart}, ""})
 	}
 	if t.KeepEndIndents {
 		for len(indents) > 0 && indent < indents[len(indents)-1] {
-			tokens = append(tokens, &Token{EndIndent, nil, Location{file, line, col}, ""})
+			tokens = append(tokens, &Token{EndIndent, nil, &Location{file, line, col}, ""})
 			indents = indents[:len(indents)-1]
 		}
 	}
-	tokens = append(tokens, &Token{EOF, nil, Location{file, line, col}, ""})
+	tokens = append(tokens, &Token{EOF, nil, &Location{file, line, col}, ""})
 	return tokens
 }
