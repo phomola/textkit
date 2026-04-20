@@ -21,6 +21,7 @@ const (
 	EOL
 	EndIndent
 	EOF
+	Comment
 )
 
 func (t TokenType) String() string {
@@ -39,6 +40,8 @@ func (t TokenType) String() string {
 		return "endindent"
 	case EOF:
 		return "eof"
+	case Comment:
+		return "comment"
 	}
 	return "unknown"
 }
@@ -69,7 +72,7 @@ type Token struct {
 }
 
 func (t *Token) String() string {
-	return fmt.Sprintf("%s %s %s", t.Type, string(t.Form), t.Loc)
+	return fmt.Sprintf("%s '%s' %s", t.Type, string(t.Form), t.Loc)
 }
 
 // Tokeniser is a tokeniser which takes into account comments and special characters in identifiers.
@@ -79,6 +82,7 @@ type Tokeniser struct {
 	IdentChars     string
 	KeepEOLs       bool
 	KeepEndIndents bool
+	KeepComments   bool
 }
 
 func isWhiteChar(c rune) bool {
@@ -116,10 +120,14 @@ func (t *Tokeniser) Tokenise(text, file string) []*Token {
 				if len(t.CommentPrefix) > 0 {
 					if (len(runes) - i) >= len(commentPrefixRunes) {
 						if string(runes[i:i+len(commentPrefixRunes)]) == t.CommentPrefix {
+							commentStart := i
 							for i < len(runes) && runes[i] != '\n' {
 								i++
 							}
 							r = '\n'
+							if t.KeepComments {
+								tokens = append(tokens, &Token{Comment, runes[commentStart:i], &Location{file, line, col}, ""})
+							}
 						}
 					}
 				}

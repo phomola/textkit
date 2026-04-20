@@ -31,3 +31,23 @@ H
 
 	r.Equal(18, len(tokens))
 }
+
+func TestComments(t *testing.T) {
+	r := require.New(t)
+
+	tok := &Tokeniser{
+		CommentPrefix: "#",
+		KeepComments:  true,
+	}
+	tokens := tok.Tokenise(`
+# AAA BBB
+# CCC DDD
+abcd
+`, "<file>")
+
+	for _, tok := range tokens {
+		t.Log(tok)
+	}
+
+	r.Equal(4, len(tokens))
+}
