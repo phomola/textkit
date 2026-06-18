@@ -15,13 +15,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go-version }}
       - name: Checkout out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
       - name: Linter
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v9
         with:
           args: --timeout 5m
       - name: Vet & test
