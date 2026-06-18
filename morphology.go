@@ -49,8 +49,8 @@ func NewMorphologicalLexicon(filename string) (*MorphologicalLexicon, error) {
 		return nil, err
 	}
 	lex := &MorphologicalLexicon{make(map[string][]*LexicalEntry)}
-	lines := strings.Split(string(b), "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(string(b), "\n")
+	for line := range lines {
 		if line != "" {
 			comps := strings.Split(line, "\t")
 			lex.AddEntry(comps[0], comps[1], comps[2])
